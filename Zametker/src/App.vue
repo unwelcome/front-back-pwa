@@ -2,6 +2,9 @@
   <statusWindow/>
   <div class="w-svw h-svh flex flex-col gap-4 justify-start items-center bg-slate-50">
     <div class="flex flex-col w-full lg:w-[800px] items-stretch grow gap-2 bg-gray-200 overflow-hidden">
+      <div class="text-center pt-1">
+        <p class="text-m text-gray-600">Статус подключения: <span class="font-medium" :class="{'text-red-600' : isOffline, 'text-cyan-600' : !isOffline}">{{ isOffline ? 'оффлайн' : 'онлайн' }}</span></p> 
+      </div>
       <div class="flex flex-col gap-2 grow p-4 scrollable">
 
         <noteItem v-for="note of notesArray" 
@@ -70,19 +73,38 @@ export default {
       changeNoteID: null as number | null,
       title: '',
       text: '',
+
+      isOffline: false,
     }
   },
   async mounted() {
-    await this.dbHandler.init();
-
+    //Проверка подклбючения
+    this.updateOnlineStatus();
     try{
-      this.notesArray = await this.dbHandler.getAllNotes();
+      //Подключение к бд
+      await this.dbHandler.init();
+      try{ //Получение всех записей из бд
+        this.notesArray = await this.dbHandler.getAllNotes();
+      }
+      catch(e){
+        this.StatusWindowAPI.createStatusWindow({status: this.StatusWindowAPI.getCodes.error, text: 'Неудалось получить заметки!'});
+      }
     }
     catch(e){
-      this.StatusWindowAPI.createStatusWindow({status: this.StatusWindowAPI.getCodes.error, text: 'Неудалось получить заметки!'});
+      this.StatusWindowAPI.createStatusWindow({status: this.StatusWindowAPI.getCodes.error, text: 'Неудалось подключиться к бд!'});
     }
+    //Добавление слушателей
+    window.addEventListener('online', this.updateOnlineStatus);
+    window.addEventListener('offline', this.updateOnlineStatus);
+  },
+  beforeUnmount() { //Удаление слушателей
+    window.removeEventListener('online', this.updateOnlineStatus);
+    window.removeEventListener('offline', this.updateOnlineStatus);
   },
   methods: {
+    updateOnlineStatus() {
+      this.isOffline = !navigator.onLine;
+    },
     findNoteByID(noteID: number): INote | null{
       for(let note of this.notesArray){
         if(note.id === noteID) return note;
@@ -143,8 +165,6 @@ export default {
             //Очищаем
             this.title = '';
             this.text = '';
-            //Сообщение об успехе
-            this.StatusWindowAPI.createStatusWindow({status: this.StatusWindowAPI.getCodes.success, text: 'Запись создана!'});
           }
           catch(e){
             this.StatusWindowAPI.createStatusWindow({status: this.StatusWindowAPI.getCodes.error, text: 'Неудалось добавить заметку!'});
