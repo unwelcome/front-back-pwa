@@ -14,10 +14,13 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       outDir: 'dist',
+      srcDir: 'src',
+      filename: 'sw.js',
+      strategies: 'generateSW',
       manifest: {
         id: '/',
         name: 'Zametker',
-        short_name: 'ZOV',
+        short_name: 'Zam',
         description: 'Удобные Zametki прямо под рукой',
         theme_color: '#EBF5FF',
         background_color: '#EBF5FF', 
@@ -46,7 +49,10 @@ export default defineConfig({
             form_factor: 'narrow',
           },
         ],
-      }
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,png,jpg,jpeg,svg,gif}'],
+      },
     })
   ],
   resolve: {
